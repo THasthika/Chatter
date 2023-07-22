@@ -26,12 +26,7 @@ class ChatterManager:
         self.users.add(user)
         self.websocket_map[websocket] = user
 
-        # broadcast user count change
-        callbacks = []
-        for uc in self.users:
-            callbacks.append(uc.send_response(ChatterResponse(
-                type=ChatterResponseType.USER_COUNT, payload=self.get_user_count())))
-        await asyncio.gather(*callbacks)
+        await self.__broadcase_user_count()
 
         while True:
             data = await websocket.receive_json()
@@ -53,6 +48,7 @@ class ChatterManager:
             if not user.is_free:
                 await self.__end_chat(user)
             self.users.remove(user)
+            await self.__broadcase_user_count()
 
     async def remove_websocket(self, websocket: WebSocket):
         if websocket in self.websocket_map:
@@ -66,6 +62,14 @@ class ChatterManager:
         callbacks = []
         for user in self.users:
             callbacks.append(self.remove_user(user))
+        await asyncio.gather(*callbacks)
+
+    async def __broadcase_user_count(self):
+        # broadcast user count change
+        callbacks = []
+        for uc in self.users:
+            callbacks.append(uc.send_response(ChatterResponse(
+                type=ChatterResponseType.USER_COUNT, payload=self.get_user_count())))
         await asyncio.gather(*callbacks)
 
     async def __register(self, user: User, payload: dict):
