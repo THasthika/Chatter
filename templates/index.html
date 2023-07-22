@@ -316,7 +316,7 @@
         };
         addMessage(message, "You");
         websocket.send(JSON.stringify(data));
-        message.value = "";
+        document.getElementsByName("chat-message")[0].value = "";
       }
 
       const registerForm = document.getElementById("register-form");
