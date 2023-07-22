@@ -11,6 +11,7 @@ import os
 load_dotenv()
 
 WEBSOCKET_URL = os.environ.get("WEBSOCKET_URL", "ws://127.0.0.1:8000/ws")
+GA_ID = os.environ.get("GA_ID", None)
 
 chatter: ChatterManager | None = None
 
@@ -52,7 +53,8 @@ async def index(request: Request):
         "request": request,
         "genders": [str(g) for g in Gender],
         "ages": [i for i in range(0, 101)],
-        "websocket_url": WEBSOCKET_URL
+        "websocket_url": WEBSOCKET_URL,
+        "ga_id": GA_ID
     })
 
 
