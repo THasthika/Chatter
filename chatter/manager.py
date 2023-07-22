@@ -18,10 +18,21 @@ class ChatterManager:
         self.users = set()
         self.waiting_match_set = set()
 
+    def get_user_count(self) -> int:
+        return len(self.users)
+
     async def handle_websocket(self, websocket: WebSocket):
         user = User(websocket)
         self.users.add(user)
         self.websocket_map[websocket] = user
+
+        # broadcast user count change
+        callbacks = []
+        for uc in self.users:
+            callbacks.append(uc.send_response(ChatterResponse(
+                type=ChatterResponseType.USER_COUNT, payload=self.get_user_count())))
+        await asyncio.gather(*callbacks)
+
         while True:
             data = await websocket.receive_json()
             if 'type' not in data:

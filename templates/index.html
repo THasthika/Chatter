@@ -12,7 +12,7 @@
     />
     <style type="text/css">
       #message-holder {
-        height: calc(100vh - 600px);
+        height: calc(100vh - 400px);
         overflow: scroll;
       }
     </style>
@@ -20,55 +20,19 @@
   <body>
     <div class="container">
       <div id="header">
-        <div>
-          <h1>Chatter</h1>
+        <div class="row">
+          <div class="col">
+            <h1>Chatter</h1>
+          </div>
+          <div class="col-auto text-end">
+            <div id="user-count-holder" class="small text-secondary">
+              Users Online: <span id="user-count">###</span>
+            </div>
+          </div>
         </div>
       </div>
-      <span id="status-holder" class="small text-secondary"
-        >Status Holder..</span
-      >
       <div id="content">
-        <section id="chat">
-          <div id="message-holder">
-            <!-- <div class="card px-1 py-1 my-2">
-              <div class="message">
-                <span><b>Stranger</b></span>
-                <span>Hello!</span>
-              </div>
-            </div> -->
-          </div>
-        </section>
-        <section>
-          <form id="chat-form">
-            <div>
-              <textarea
-                id="chat-message-textarea"
-                class="form-control mb-2"
-                name="chat-message"
-                cols="50"
-                rows="4"
-                placeholder="Say Hello..."
-              ></textarea>
-            </div>
-            <div>
-              <button type="submit" class="btn btn-primary">Send</button>
-            </div>
-          </form>
-        </section>
-        <div class="row mt-4">
-          <div class="col">
-            <section class="card p-4">
-              <h2>Start Chatting...</h2>
-              <button
-                disabled
-                id="request-match-btn"
-                type="button"
-                class="btn btn-primary"
-              >
-                Request Match
-              </button>
-            </section>
-          </div>
+        <div class="row">
           <div class="col">
             <section id="controls" class="card p-4">
               <h3>Register Details</h3>
@@ -132,7 +96,7 @@
                       >Gender</label
                     >
                   </div>
-                  <div class="col-auto">
+                  <div class="col-auto pt-2">
                     {% for gender in genders %}
                     <div class="form-check form-check-inline">
                       <input
@@ -151,7 +115,63 @@
                 </div>
                 <div>
                   <button type="submit" class="btn btn-primary">
-                    Register
+                    Request a Match
+                  </button>
+                </div>
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  id="reconnect-checkbox"
+                />
+                <label class="form-check-label" for="reconnect-checkbox"
+                  >Re-request a match on disconnect</label
+                >
+              </form>
+            </section>
+            <span id="status-holder" class="small text-secondary"
+              >Status Holder..</span
+            >
+          </div>
+          <div class="col">
+            <section id="chat">
+              <div id="message-holder">
+                <!-- <div class="card px-1 py-1 my-2">
+                  <div class="message">
+                    <span><b>Stranger</b></span>
+                    <span>Hello!</span>
+                  </div>
+                </div> -->
+              </div>
+            </section>
+            <section>
+              <form id="chat-form">
+                <div>
+                  <textarea
+                    id="chat-message-textarea"
+                    class="form-control mb-2"
+                    name="chat-message"
+                    cols="50"
+                    rows="4"
+                    placeholder="Say Hello..."
+                    disabled
+                  ></textarea>
+                </div>
+                <div>
+                  <button
+                    type="submit"
+                    id="send-message-btn"
+                    class="btn btn-primary"
+                    disabled
+                  >
+                    Send
+                  </button>
+                  <button
+                    type="button"
+                    id="end-chat-btn"
+                    class="btn btn-danger"
+                    disabled
+                  >
+                    End Chat
                   </button>
                 </div>
               </form>
@@ -175,6 +195,13 @@
 
       const messageHolder = document.getElementById("message-holder");
       const statusHolder = document.getElementById("status-holder");
+      const sendMessageBtn = document.getElementById("send-message-btn");
+      const chatMessageTextarea = document.getElementById(
+        "chat-message-textarea"
+      );
+      const endChatBtn = document.getElementById("end-chat-btn");
+      const userCountSpan = document.getElementById("user-count");
+      const reconnectCheckbox = document.getElementById("reconnect-checkbox");
 
       function setStatusHolder(text) {
         statusHolder.innerText = text;
@@ -223,6 +250,7 @@
           console.log("Registered");
           setStatusHolder("Registered!");
           registered = true;
+          requestForMatch();
         } else if (type == "waiting_match") {
           console.log("Waiting!");
           setStatusHolder("Waiting for a Match!");
@@ -245,11 +273,36 @@
           setStatusHolder("Chat Ended!");
           match_found = false;
           other_user = null;
+
+          if (reconnectCheckbox.checked) {
+            requestForMatch();
+          }
+        } else if (type == "user_count") {
+          userCountSpan.innerText = data.payload;
         }
 
-        // update buttons
-        requestMatchBtn.disabled = !registered;
+        sendMessageBtn.disabled = !match_found;
+        chatMessageTextarea.disabled = !match_found;
+        endChatBtn.disabled = !match_found;
       };
+
+      function requestForMatch() {
+        if (!websocket_ready) return;
+
+        const data = {
+          type: "request_match",
+        };
+        websocket.send(JSON.stringify(data));
+      }
+
+      function endChat() {
+        if (!match_found) return;
+
+        const data = {
+          type: "end_chat",
+        };
+        websocket.send(JSON.stringify(data));
+      }
 
       function registerDetails(event) {
         event.preventDefault();
@@ -294,15 +347,6 @@
         }
       }
 
-      function requestForMatch() {
-        if (!websocket_ready) return;
-
-        const data = {
-          type: "request_match",
-        };
-        websocket.send(JSON.stringify(data));
-      }
-
       function sendMessage(event) {
         event.preventDefault();
         if (!websocket_ready) return;
@@ -322,20 +366,17 @@
       const registerForm = document.getElementById("register-form");
       registerForm.addEventListener("submit", registerDetails);
 
-      const requestMatchBtn = document.getElementById("request-match-btn");
-      requestMatchBtn.addEventListener("click", requestForMatch);
-
       const chatForm = document.getElementById("chat-form");
       chatForm.addEventListener("submit", sendMessage);
 
-      const chatMessageTextarea = document.getElementById(
-        "chat-message-textarea"
-      );
       chatMessageTextarea.addEventListener("keyup", (event) => {
+        event.preventDefault();
         if (event.key === "Enter") {
           sendMessage(event);
         }
       });
+
+      endChatBtn.addEventListener("click", endChat);
     </script>
   </body>
 </html>

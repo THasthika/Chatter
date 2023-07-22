@@ -8,8 +8,9 @@ class ChatterResponseType(StrEnum):
     MATCH_FOUND = "match_found"
     MESSAGE = "message"
     CHAT_ENDED = "chat_ended"
+    USER_COUNT = "user_count"
 
 
 class ChatterResponse(BaseModel):
     type: ChatterResponseType
-    payload: str | dict | None = None
+    payload: int | str | dict | None = None

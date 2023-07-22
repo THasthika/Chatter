@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, Response, WebSocketDisconnect, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from chatter.manager import ChatterManager
 from fastapi.templating import Jinja2Templates
@@ -37,6 +38,12 @@ templates = Jinja2Templates(directory="templates")
 @app.get("/health")
 async def health():
     return Response("Working...")
+
+
+@app.get("/user-count")
+async def user_count():
+    chatter = get_chatter_manager()
+    return JSONResponse({"user_count": chatter.get_user_count()})
 
 
 @app.get("/")
