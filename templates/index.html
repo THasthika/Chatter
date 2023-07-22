@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chatter</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM"
+      crossorigin="anonymous"
+    />
+    <style type="text/css">
+      #message-holder {
+        height: calc(100vh - 600px);
+        overflow: scroll;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="header">
+        <div>
+          <h1>Chatter</h1>
+        </div>
+      </div>
+      <span id="status-holder" class="small text-secondary"
+        >Status Holder..</span
+      >
+      <div id="content">
+        <section id="chat">
+          <div id="message-holder">
+            <!-- <div class="card px-1 py-1 my-2">
+              <div class="message">
+                <span><b>Stranger</b></span>
+                <span>Hello!</span>
+              </div>
+            </div> -->
+          </div>
+        </section>
+        <section>
+          <form id="chat-form">
+            <div>
+              <textarea
+                id="chat-message-textarea"
+                class="form-control mb-2"
+                name="chat-message"
+                cols="50"
+                rows="4"
+                placeholder="Say Hello..."
+              ></textarea>
+            </div>
+            <div>
+              <button type="submit" class="btn btn-primary">Send</button>
+            </div>
+          </form>
+        </section>
+        <div class="row mt-4">
+          <div class="col">
+            <section class="card p-4">
+              <h2>Start Chatting...</h2>
+              <button
+                disabled
+                id="request-match-btn"
+                type="button"
+                class="btn btn-primary"
+              >
+                Request Match
+              </button>
+            </section>
+          </div>
+          <div class="col">
+            <section id="controls" class="card p-4">
+              <h3>Register Details</h3>
+              <form id="register-form">
+                <div class="row mb-3">
+                  <div class="col-auto">
+                    <label for="age" class="col-form-label">Age</label>
+                  </div>
+                  <div class="col-auto">
+                    <select class="form-select" name="age">
+                      <option value="" selected>None</option>
+                      {% for age in ages %}
+                      <option value="{{age}}">{{age}}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-auto">
+                    <label for="gender" class="col-form-label">Gender</label>
+                  </div>
+                  <div class="col-auto">
+                    <select class="form-select" name="gender">
+                      <option value="" selected>None</option>
+                      {% for gender in genders %}
+                      <option value="{{gender}}">{{gender}}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <h5>Preference</h5>
+                <div class="row">
+                  <div class="col-auto">
+                    <label for="preferred_age_min" class="col-form-label"
+                      >Age (Min)</label
+                    >
+                  </div>
+                  <div class="col-auto">
+                    <select class="form-select" name="preferred_age_min">
+                      <option value="" selected>None</option>
+                      {% for age in ages %}
+                      <option value="{{age}}">{{age}}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="col-auto">
+                    <label for="preferred_age_max" class="col-form-label"
+                      >Age (Max)</label
+                    >
+                  </div>
+                  <div class="col-auto">
+                    <select class="form-select" name="preferred_age_max">
+                      <option value="" selected>None</option>
+                      {% for age in ages %}
+                      <option value="{{age}}">{{age}}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-auto">
+                    <label for="preferred_gender" class="col-form-label"
+                      >Gender</label
+                    >
+                  </div>
+                  <div class="col-auto">
+                    {% for gender in genders %}
+                    <div class="form-check form-check-inline">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        name="preferred_gender"
+                        id="{{gender}}_checkbox"
+                        value="{{gender}}"
+                      />
+                      <label class="form-check-label" for="{{gender}}_checkbox"
+                        >{{gender}}</label
+                      >
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+                <div>
+                  <button type="submit" class="btn btn-primary">
+                    Register
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz"
+      crossorigin="anonymous"
+    ></script>
+    <script type="text/javascript">
+      const websocket = new WebSocket("ws://localhost:8000/ws");
+
+      let websocket_ready = false;
+      let registered = false;
+      let match_found = false;
+      let other_user = null;
+
+      const messageHolder = document.getElementById("message-holder");
+      const statusHolder = document.getElementById("status-holder");
+
+      function setStatusHolder(text) {
+        statusHolder.innerText = text;
+      }
+
+      setStatusHolder("Register Please!");
+
+      function createMessage(message, from) {
+        const messageDiv = document.createElement("div");
+        messageDiv.className = "message";
+
+        messageDiv.innerHTML = `
+        <div class="card px-1 py-1 my-2">
+          <div class="message">
+            <span><b>${from}</b></span>
+            <span>${message}</span>
+          </div>
+        </div>
+        `;
+
+        return messageDiv;
+      }
+
+      function addMessage(message, from) {
+        const messageDiv = createMessage(message, from);
+        messageHolder.appendChild(messageDiv);
+        messageHolder.scrollTo(0, messageHolder.scrollHeight);
+      }
+
+      function clearMessages() {
+        messageHolder.innerHTML = "";
+      }
+
+      websocket.onopen = (event) => {
+        websocket_ready = true;
+      };
+
+      websocket.onclose = (event) => {
+        websocket_ready = false;
+      };
+
+      websocket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const type = data.type;
+        if (type === "registered") {
+          console.log("Registered");
+          setStatusHolder("Registered!");
+          registered = true;
+        } else if (type == "waiting_match") {
+          console.log("Waiting!");
+          setStatusHolder("Waiting for a Match!");
+        } else if (type == "match_found") {
+          console.log("Match Found!");
+          setStatusHolder("Match Found Start Chatting!");
+          clearMessages();
+          match_found = true;
+          other_user = {
+            age: data.payload.age,
+            gender: data.payload.gender,
+          };
+        } else if (type == "message") {
+          console.log("Message!");
+          const message = data.payload;
+          const from = "Stranger";
+          addMessage(message, from);
+        } else if (type == "chat_ended") {
+          console.log("Chat Ended!");
+          setStatusHolder("Chat Ended!");
+          match_found = false;
+          other_user = null;
+        }
+
+        // update buttons
+        requestMatchBtn.disabled = !registered;
+      };
+
+      function registerDetails(event) {
+        event.preventDefault();
+
+        const age = document.getElementsByName("age")[0].value.trim();
+        const gender = document.getElementsByName("gender")[0].value.trim();
+        const preferredAgeMin = document
+          .getElementsByName("preferred_age_min")[0]
+          .value.trim();
+        const preferredAgeMax = document
+          .getElementsByName("preferred_age_max")[0]
+          .value.trim();
+        const preferredGenderCheckboxes =
+          document.getElementsByName("preferred_gender");
+
+        let preferredGenders = [];
+
+        preferredGenderCheckboxes.forEach((checkbox) => {
+          if (checkbox.checked) {
+            preferredGenders.push(checkbox.value.trim());
+          }
+        });
+
+        const payload = {
+          age: age == "" ? null : Number(age),
+          gender: gender == "" ? null : gender,
+          preference: {
+            age: {
+              min: preferredAgeMin == "" ? null : Number(preferredAgeMin),
+              max: preferredAgeMax == "" ? null : Number(preferredAgeMax),
+            },
+            gender: preferredGenders == "" ? null : preferredGenders,
+          },
+        };
+
+        if (websocket_ready) {
+          const data = {
+            type: "register",
+            payload,
+          };
+          websocket.send(JSON.stringify(data));
+        }
+      }
+
+      function requestForMatch() {
+        if (!websocket_ready) return;
+
+        const data = {
+          type: "request_match",
+        };
+        websocket.send(JSON.stringify(data));
+      }
+
+      function sendMessage(event) {
+        event.preventDefault();
+        if (!websocket_ready) return;
+        if (!match_found) return;
+        const message = document
+          .getElementsByName("chat-message")[0]
+          .value.trim();
+        const data = {
+          type: "message",
+          payload: message,
+        };
+        addMessage(message, "You");
+        websocket.send(JSON.stringify(data));
+        message.value = "";
+      }
+
+      const registerForm = document.getElementById("register-form");
+      registerForm.addEventListener("submit", registerDetails);
+
+      const requestMatchBtn = document.getElementById("request-match-btn");
+      requestMatchBtn.addEventListener("click", requestForMatch);
+
+      const chatForm = document.getElementById("chat-form");
+      chatForm.addEventListener("submit", sendMessage);
+
+      const chatMessageTextarea = document.getElementById(
+        "chat-message-textarea"
+      );
+      chatMessageTextarea.addEventListener("keyup", (event) => {
+        if (event.key === "Enter") {
+          sendMessage(event);
+        }
+      });
+    </script>
+  </body>
+</html>
