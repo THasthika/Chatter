@@ -4,7 +4,12 @@ from fastapi.staticfiles import StaticFiles
 from chatter.manager import ChatterManager
 from fastapi.templating import Jinja2Templates
 from chatter.utils import Gender
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+
+WEBSOCKET_URL = os.environ.get("WEBSOCKET_URL", "ws://127.0.0.1:8000/ws")
 
 chatter: ChatterManager | None = None
 
@@ -39,7 +44,8 @@ async def index(request: Request):
     return templates.TemplateResponse("index.html", {
         "request": request,
         "genders": [str(g) for g in Gender],
-        "ages": [i for i in range(0, 101)]
+        "ages": [i for i in range(0, 101)],
+        "websocket_url": WEBSOCKET_URL
     })
 
 
